@@ -1,0 +1,106 @@
+---
+title: "using stringr"
+author: "Tora Mullings"
+date: "3/27/2022"
+output: html_document
+---
+
+```{r}
+library(tidyverse)
+library(rvest)
+```
+
+
+```{r}
+filepath <- "matrix.csv"   # remember to put on github
+
+df <- read.csv(filepath, header=TRUE)
+glimpse(df)
+```
+
+### Take a look at the wikipedia categories in `ARTIST CATEGORY`. Each one is part of the wikipedia url that leads to the actual website. Visit wikipedia itself to get the base url that you can append one of these categories to.
+```{r}
+base.url <- "https://en.wikipedia.org/w/index.php?title="  #https://en.wikipedia.org/wiki/Category:Musical_groups_established_in_1984"
+
+```
+
+```{r}
+html.1984 <- read_html(category.url, encoding="UTF-8")
+```
+
+
+##### Q1: Get all hyperlinks on the page "Category:Musical_groups_established_in_1984".
+```{r}
+category.url <- paste0(base.url, "Category:Musical_groups_established_in_1984")
+links.1984 <- read_html(category.url, encoding="UTF-8") %>% 
+      html_elements(xpath="//a") %>% 
+      html_attr("href")
+```
+
+
+#### Q2: Which musical groups were established in 1984 that start with the letter 'D'?
+```{r}
+category.url.D <- paste0(category.url, "&from=D")
+
+band.names.D <- read_html(category.url.D, encoding = "UTF-8") %>% 
+  html_elements("div.mw-category-group:nth-child(1) > ul:nth-child(2)") %>% 
+  html_children() %>%
+  html_text2()
+
+band.names.D
+```
+
+#### Q3: Pluck an element from an HTML list.
+```{r}
+plucked <- read_html(category.url.D, encoding = "UTF-8") %>% 
+  html_elements("div.mw-category-group:nth-child(1) > ul:nth-child(2)") %>% 
+  html_children() %>% 
+  pluck(17)
+```
+
+#### Q4: Initialize an HTML session simulation, as though you were using a browser. Jump to the `plucked` element's href.
+```{r}
+session <- session("https://en.wikipedia.org")
+
+band.url <- plucked %>% 
+  html_children() %>% 
+  html_attr("href")
+
+x <- session %>%
+  session_jump_to(band.url) #%>%
+x
+```
+
+
+#### Q5: View session history.
+```{r}
+session_history(x)
+```
+
+#### Q6: Create a data frame of a band's albums and their release years.
+
+```{r}
+dinojr <- read_html("https://en.wikipedia.org/wiki/Dinosaur_Jr.") %>% 
+  html_elements(".mw-parser-output > ul:nth-child(61)") %>% 
+  html_children() %>% 
+  html_text2()
+```
+
+```{r}
+albums <- data.frame(dinojr)
+```
+
+```{r}
+albums <- albums %>% 
+  separate(dinojr, into = c("album", "year"), sep="\\(")
+```
+
+
+```{r}
+albums$year <- gsub("\\)", "", albums$year)
+  
+```
+
+
+
+
